@@ -1,0 +1,63 @@
+%% Carga y procesamiento inicial
+I = imread("input/img02.png");
+stretch_img = stretch_lin(I);
+stretch_img = mat2gray(stretch_img);
+
+% Ajuste de contraste
+adjusted_img = imadjust(stretch_img, stretchlim(stretch_img, [0.05 0.95]), []);
+
+angle_rot = rotation(adjusted_img)
+
+
+
+%%
+J = imrotate(adjusted_img,angle_rot);
+
+figure(3)
+imshow(J)
+dims = size(J);
+
+if size(J, 3) == 3
+    % Convertir J a escala de grises sólo si es una imagen RGB
+    J_gray = im2gray(J);
+else
+    % Si J ya es en escala de grises, simplemente la asignamos a J_gray
+    J_gray = J;
+end
+
+% Usar detector de bordes Canny
+edges = edge(J_gray, 'canny');
+
+% Engrosar las líneas detectadas
+se = strel('line', 3, 0);  % elemento estructurante línea horizontal
+edges_dilated_horizontal = imdilate(edges, se);
+%figure(9);
+%imshow(edges_dilated_horizontal);
+se = strel('line', 3, 90); % elemento estructurante línea vertical
+edges_dilated_vertical = imdilate(edges, se);
+
+edges_dilated = or(edges_dilated_horizontal, edges_dilated_vertical);
+
+% Superponer líneas engrosadas sobre J en color verde
+J_overlay = J;
+J_overlay(edges_dilated) = 0;     % establecer canal rojo a 0
+J_overlay(:,:,2) = J_overlay(:,:,2) + uint8(edges_dilated*255); % incrementar canal verde
+J_overlay(edges_dilated) = 0;     % establecer canal azul a 0
+
+
+%figure(5);
+%imshow(J_overlay);
+
+figure('Position', [100, 100, 1200, 600]);
+
+subplot(1,2,1); imagesc(adjusted_img); axis equal off; colormap gray; title('original stretched');
+subplot(1,2,2); imagesc(J_overlay); axis equal off; colormap gray; title('grided');
+
+
+
+
+
+
+
+
+

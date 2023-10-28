@@ -1,0 +1,53 @@
+%% Load and initial processing
+I = imread("input/img19.png");
+stretch_img = stretch_lin(I);
+stretch_img = mat2gray(stretch_img);
+
+% Original and stretched
+figure('Position', [100, 100, 2400, 1200]);
+subplot(1,2,1);
+imshow(I);
+title("Original Image");
+
+subplot(1,2,2);
+imshow(stretch_img);
+title("Stretched image (linear)");
+
+%% Orientation restoration using 2D DFT
+% Convert to grayscale if not already
+if size(stretch_img, 3) == 3
+    I_gray = rgb2gray(stretch_img);
+else
+    I_gray = stretch_img;
+end
+
+% 2D Fourier Transform and shift zero frequency component to center
+F = fftshift(fft2(I_gray));
+magnitude = abs(F);
+
+% Exclude the central DC peak to better visualize the dominant frequencies
+[rows, cols] = size(I_gray);
+centerX = ceil(cols/2);
+centerY = ceil(rows/2);
+radius = 15;  % adjust if necessary
+
+[X, Y] = meshgrid(1:cols, 1:rows);
+mask = sqrt((X - centerX).^2 + (Y - centerY).^2) > radius;
+magnitude_masked = magnitude .* mask;
+
+% Find the dominant frequency peak
+[~, maxIdx] = max(magnitude_masked(:));
+[peakY, peakX] = ind2sub(size(magnitude_masked), maxIdx);
+
+% Calculate the angle to rotate
+deltaY = centerY - peakY;
+deltaX = centerX - peakX;
+angle = atan2(deltaY, deltaX) * (180/pi) - 95;  % Subtract 90 to align with vertical axis
+
+% Rotate the stretched image to correct orientation
+corrected_img = imrotate(stretch_img, angle, 'bicubic', 'crop');
+
+% Display corrected image
+figure;
+imshow(corrected_img);
+title("Corrected Orientation");

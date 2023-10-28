@@ -69,12 +69,3 @@ J_overlay(edges_dilated) = 0;     % establecer canal azul a 0
 
 figure(5);
 imshow(J_overlay);
-
-
-
-
-
-
-
-
-
