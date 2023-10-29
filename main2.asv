@@ -1,0 +1,135 @@
+clc
+close all
+
+filename ="input/img19.png";
+img1 = imread(filename); % Esta es tu imagen original
+
+%% Convertir a escala de grises
+img = rgb2gray(imread(filename));
+
+imshow(img)
+
+%% strecth
+
+stretch_img = stretch_lin(img);
+stretch_img = im2gray(stretch_img);
+
+%img_gray = rgb2gray(stretch_img);
+
+% Aplicar un filtro gaussiano para suavizar
+img_smooth = imgaussfilt(img, 2);
+edge_de = edge(img_smooth, "canny");
+
+
+
+%% rotation
+[H, theta, rho] = hough(edge_de);
+peaks = houghpeaks(H, 10);
+lines = houghlines(edge_de, theta, rho, peaks);
+angle_rot = mode([lines.theta]);
+disp(angle_rot);
+J = imrotate(img, angle_rot);
+
+%J = im2gray(J);
+
+
+
+
+%% Binarización
+BW = imbinarize(J,graythresh(img));
+BW = ~BW;
+image_proccesed = BW;
+
+%% Comp. Conectados
+CC = bwconncomp(image_proccesed);
+
+%% Propiedades de las regiones
+stats = regionprops(CC);
+
+player1_symbol= {};
+player2_symbol= {};
+bbno=1;
+
+% Crear una imagen de salida que contendrá todos los rectángulos y números
+outputImage = J;
+
+for i = 1:numel(stats)
+    % Extract the coordinates of the bounding box
+    area = stats(i).Area;
+    x = stats(i).BoundingBox(1);
+    y = stats(i).BoundingBox(2);
+    width = stats(i).BoundingBox(3);
+    height = stats(i).BoundingBox(4);
+    
+    m_X = stats(i).Centroid(1);
+    m_y = stats(i).Centroid(2);
+    
+    test_mat = image_proccesed(round(m_y)-3:round(m_y)+3,round(m_X)-3:round(m_X)+3);
+    
+    if any(test_mat == 0) 
+        bboxColor = 'green';
+        player1_symbol = [player1_symbol ,[stats(i).BoundingBox]];
+    else  
+        bboxColor = 'red';
+        player2_symbol = [player2_symbol ,[stats(i).BoundingBox]];
+    end    
+
+    % Insertar el bounding box y el número en la imagen de salida
+    outputImage = insertShape(outputImage, 'Rectangle', [x, y, width, height], 'Color', bboxColor, 'LineWidth', 1);
+
+    %outputImage = insertText(outputImage, [x+5, y+5], num2str(bbno),'color','red','fontsize',10);
+    %bbno = bbno+1;
+end
+
+% Mostrar la imagen original y la imagen de salida en un mismo plot
+figure;
+
+subplot(1, 2, 1); 
+imshow(img1); 
+title('Original Image');
+
+subplot(1, 2, 2); 
+imshow(outputImage); 
+title('Processed Image');
+
+
+
+
+
+
+
+
+% player1_coords = [];  
+% layer1_coords = [];  
+% player2_coords = [];  
+% 
+% for i = 1:numel(stats)
+%     m_X = stats(i).Centroid(1);
+%     m_y = stats(i).Centroid(2);
+% 
+%     test_mat = image_proccesed(round(m_y)-3:round(m_y)+3,round(m_X)-3:round(m_X)+3);
+% 
+%     if any(test_mat == 0) 
+%         player1_coords = [player1_coords; m_X, m_y];
+%     else  
+%         player2_coords = [player2_coords; m_X, m_y];
+%     end    
+% end
+% 
+% % Ajuste de tamaño de figura
+% fig = figure('Position', [100, 100, 600, 600]);
+% 
+% hold on;
+% 
+% % Uso de scatter para transparencia y ajuste de tamaño
+% scatter(player1_coords(:,1), -player1_coords(:,2), 300, 'ro', 'filled', 'MarkerFaceAlpha', 0.7); 
+% scatter(player2_coords(:,1), -player2_coords(:,2), 300, 'bo', 'filled', 'MarkerFaceAlpha', 0.7);
+% 
+% grid on;
+% axis equal;
+% xlabel('X');
+% ylabel('Y');
+% legend('player 1', 'player 2');
+% title('Game representation');
+% hold off;
+

@@ -1,123 +1,100 @@
 clc
 close all
-filename ="input/img01.png";
-img1 = imread(filename);
-imshow(img1);
-title('Original image')
-%%
+
+filename = "input/img19.png";
+img1 = imread(filename); % Read the original image
+
+%% Convert to grayscale
 img = rgb2gray(imread(filename));
-imshow(img);
-%%
-BW = imbinarize(img,graythresh(img));
-%BW = stretch_lin(img);
+
+%% Binarization
+BW = imbinarize(img, graythresh(img));
 BW = ~BW;
-%figure
-figure(1)
-imshow(BW);
+image_processed = BW;
 
-%%
-CC = bwconncomp(BW);
-disp(CC)
-%%
+%% Connected Components
+CC = bwconncomp(image_processed);
+
+%% Region properties
 stats = regionprops(CC);
-disp(stats);
-bw2 = BW;
-% Display the original image
-subplot(1,2,1);
-imshow(BW);
-title('Binary Image')
 
-player1_symbol= {};
-player2_symbol= {};
-bbno=1;
+player1_symbol = {};
+player2_symbol = {};
+player1_coords = [];
+player2_coords = [];
+
+% Create an output image that will contain all the rectangles and numbers
+outputImage = img1;
+
 for i = 1:numel(stats)
-    % Extract the coordinates of the bounding box
+    % Extract bounding box coordinates
     area = stats(i).Area;
-    %if area > 50
-        x = stats(i).BoundingBox(1);
-        y = stats(i).BoundingBox(2);
-        width = stats(i).BoundingBox(3);
-        height = stats(i).BoundingBox(4);
-        
-        m_X = stats(i).Centroid(1);
-        m_y = stats(i).Centroid(2);
-        
-        test_mat = BW(round(m_y)-3:round(m_y)+3,round(m_X)-3:round(m_X)+3);
-        
-        if any(test_mat == 0) 
-            bboxColor = 'g';
-            player1_symbol = [player1_symbol ,[stats(i).BoundingBox]];
-        else  
-            bboxColor = 'r';
-            player2_symbol = [player2_symbol ,[stats(i).BoundingBox]];
-        end    
-%         bboxColor = 'g';
-%         player1_symbol = [player1_symbol ,[stats(i).BoundingBox]];
-%         if area >90
-%             player2_symbol = [player2_symbol ,[stats(i).BoundingBox]];
-%             bboxColor = 'r';   
-% 
-%         end
-        % Draw the bounding box as a rectangle
-        rectangle('Position', [x, y, width, height], 'EdgeColor', bboxColor, 'LineWidth', 0.5);
-        H= text(x+5, y+5,string(bbno));
-        set(H,'color','red','fontsize',10)
-        bbno = bbno+1;
-
-    %end
-end
-
-
-
-
-
-% Crea una figura para el gráfico de juego
-subplot(1,2,2); % Selecciona el segundo sub-gráfico
-
-
-% Crea una figura para el gráfico de juego
-subplot(1,2,2); % Selecciona el segundo sub-gráfico
-axis tight; % Ajusta el eje para que se adapte a los datos
-grid on;
-hold on;
-xlim([0 size(img1, 2)]); % Ajusta el límite x según el ancho de la imagen
-ylim([0 size(img1, 1)]); % Ajusta el límite y según el alto de la imagen
-set(gca, 'YDir','reverse'); % Invierte el eje Y
-
-% ... (resto del código)
-
-
-
-
-% Define dos listas vacías para las coordenadas X e Y de los puntos
-player1_x = [];
-player1_y = [];
-player2_x = [];
-player2_y = [];
-
-% Itera sobre las estadísticas de las regiones
-for i = 1:numel(stats)
-    x = stats(i).BoundingBox(1) + stats(i).BoundingBox(3)/2; % Centroid x
-    y = stats(i).BoundingBox(2) + stats(i).BoundingBox(4)/2; % Centroid y
+    x = stats(i).BoundingBox(1);
+    y = stats(i).BoundingBox(2);
+    width = stats(i).BoundingBox(3);
+    height = stats(i).BoundingBox(4);
     
-    test_mat = BW(round(y)-3:round(y)+3,round(x)-3:round(x)+3);
+    m_X = stats(i).Centroid(1);
+    m_y = stats(i).Centroid(2);
     
+    test_mat = image_processed(round(m_y)-3:round(m_y)+3, round(m_X)-3:round(m_X)+3);
+    
+    % Determine player by checking the matrix
     if any(test_mat == 0) 
-        player1_x = [player1_x, x];
-        player1_y = [player1_y, y];
+        bboxColor = 'green';
+        player1_symbol = [player1_symbol, [stats(i).BoundingBox]];
+        player1_coords = [player1_coords; m_X, m_y];
     else  
-        player2_x = [player2_x, x];
-        player2_y = [player2_y, y];
-    end
+        bboxColor = 'red';
+        player2_symbol = [player2_symbol, [stats(i).BoundingBox]];
+        player2_coords = [player2_coords; m_X, m_y];
+    end    
+
+    % Insert bounding box into the output image
+    outputImage = insertShape(outputImage, 'Rectangle', [x, y, width, height], 'Color', bboxColor, 'LineWidth', 1);
 end
 
-% Grafica los puntos en el gráfico de juego
-scatter(player1_x, player1_y, 300, 'g', 'filled'); % Jugador 1 en rojo
-scatter(player2_x, player2_y, 300, 'r', 'filled'); % Jugador 2 en azul
+% Display the original and processed images side by side
+figure;
+
+subplot(1, 2, 1); 
+imshow(img1); 
+title('Original Image');
+
+subplot(1, 2, 2); 
+imshow(outputImage); 
+title('Processed Image');
+
+% Adjust figure size
+fig = figure('Position', [100, 100, 600, 600]);
+
+hold on;
+
+% Use scatter plot for player points
+scatter(player1_coords(:,1), player1_coords(:,2), 300, 'ro', 'filled', 'MarkerFaceAlpha', 0.7); 
+scatter(player2_coords(:,1), player2_coords(:,2), 300, 'bo', 'filled', 'MarkerFaceAlpha', 0.7);
+
+grid on;
+axis equal;
+xlabel('X');
+ylabel('Y');
+set(gca,'YDir','reverse'); % Invert the Y-axis
 legend('Player 1', 'Player 2');
-
-
+title('Game Representation');
 hold off;
 
+% Find the length of the longest line for each player
+[lengthP1, ~, ~] = findLongestLine(player1_coords);
+[lengthP2, ~, ~] = findLongestLine(player2_coords);
 
+% Announce the winner and the length of their lines
+if lengthP1 > lengthP2
+    disp('Player 1 is the winner with a line of ' + string(lengthP1) + ' consecutive points.');
+elseif lengthP2 > lengthP1
+    disp('Player 2 is the winner with a line of ' + string(lengthP2) + ' consecutive points.');
+else
+    disp('It is a tie!');
+end
 
+disp('Player 1 has ' + string(lengthP1) + ' consecutive points.');
+disp('Player 2 has ' + string(lengthP2) + ' consecutive points.');

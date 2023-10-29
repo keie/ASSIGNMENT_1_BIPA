@@ -46,6 +46,7 @@ J = imrotate(I,angle_rot);
 
 
 % Convertir J a escala de grises
+imbinarize
 J_gray = rgb2gray(J);
 
 % Usar detector de bordes Canny
@@ -69,3 +70,33 @@ J_overlay(edges_dilated) = 0;     % establecer canal azul a 0
 
 figure(5);
 imshow(J_overlay);
+
+
+
+
+% Encontrar la línea más larga para cada jugador
+[lengthP1, lineStartP1, lineEndP1] = findLongestLine(player1_coords);
+[lengthP2, lineStartP2, lineEndP2] = findLongestLine(player2_coords);
+
+% Trazar la línea más larga para el jugador 1 (si existe)
+if ~isempty(lineStartP1) && ~isempty(lineEndP1)
+    hold on;
+    plot([lineStartP1(1), lineEndP1(1)], [lineStartP1(2), lineEndP1(2)], 'g', 'LineWidth', 2);
+    hold off;
+end
+
+% Trazar la línea más larga para el jugador 2 (si existe)
+if ~isempty(lineStartP2) && ~isempty(lineEndP2)
+    hold on;
+    plot([lineStartP2(1), lineEndP2(1)], [lineStartP2(2), lineEndP2(2)], 'r', 'LineWidth', 2);
+    hold off;
+end
+
+% Determinar el ganador
+if lengthP1 > lengthP2
+    fprintf('¡El ganador es el Jugador 1 con una línea de longitud %.2f!\n', lengthP1);
+elseif lengthP2 > lengthP1
+    fprintf('¡El ganador es el Jugador 2 con una línea de longitud %.2f!\n', lengthP2);
+else
+    fprintf('¡Es un empate!\n');
+end
